@@ -5,14 +5,14 @@ import asyncio
 from datetime import timedelta
 import logging
 
-from ohme_ha.OhmeAuth import OhmeAuth
-from ohme_ha.OhmeCharger import OhmeCharger
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 import homeassistant.util.dt as dt_util
 
+from .OhmeAuth import OhmeAuth
+from .OhmeCharger import OhmeCharger
 from .const import (
     CONF_APIKEY,
     CONF_PASSWORD,
@@ -27,6 +27,11 @@ SCAN_INTERVAL = timedelta(seconds=60)
 _LOGGER: logging.Logger = logging.getLogger(__package__)
 
 
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Set up this integration using YAML is not supported."""
+    return True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Ohme Smart EV Charger from a config entry."""
 
@@ -34,9 +39,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     username = entry.data.get(CONF_USERNAME)
     password = entry.data.get(CONF_PASSWORD)
-    apikey = entry.data.get(CONF_APIKEY)
+    api_key = entry.data.get(CONF_APIKEY)
 
-    conn = OhmeAuth(apikey, username, password)
+    conn = OhmeAuth(str(api_key), str(username))
+    await conn.start_auth(str(password))
     charger = OhmeCharger(conn)
 
     coordinator = OhmeDataUpdateCoordinator(hass, client=charger, entry=entry)

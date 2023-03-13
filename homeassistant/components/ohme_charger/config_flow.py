@@ -4,9 +4,6 @@ from __future__ import annotations
 import logging
 import traceback
 
-from ohme_ha.OhmeAuth import OhmeAuth
-from ohme_ha.OhmeCharger import OhmeCharger
-from ohme_ha.exceptions import TimeoutException, WrongCredentials
 import voluptuous as vol
 
 from homeassistant import config_entries
@@ -14,13 +11,16 @@ from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 
 from . import SCAN_INTERVAL
+from .OhmeAuth import OhmeAuth
+from .OhmeCharger import OhmeCharger
 from .const import CONF_APIKEY, CONF_PASSWORD, CONF_SCAN_INTERVAL, CONF_USERNAME, DOMAIN
+from .exceptions import TimeoutException
 
 _LOGGER: logging.Logger = logging.getLogger(__package__)
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
-        vol.Required("apikey"): str,
+        vol.Required("api_key"): str,
         vol.Required("username"): str,
         vol.Required("password"): str,
     }
@@ -48,7 +48,10 @@ class OhmeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 user_input[CONF_PASSWORD],
             )
             if client:
-                return self.async_create_entry(title=client.site_name, data=user_input)
+                return self.async_create_entry(
+                    title=client.session["chargeDevice"]["modelTypeDisplayName"],
+                    data=user_input,
+                )
             self._errors["base"] = err
 
             return await self._show_config_form(user_input)
@@ -57,8 +60,10 @@ class OhmeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry):
-        """No idea."""
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> OhmeOptionsFlowHandler:
+        """Get the options flow for this handler."""
         return OhmeOptionsFlowHandler(config_entry)
 
     async def _show_config_form(self, user_input):  # pylint: disable=unused-argument
@@ -68,7 +73,7 @@ class OhmeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_USERNAME, default=defaults[CONF_APIKEY]): str,
+                    vol.Required(CONF_APIKEY, default=defaults[CONF_APIKEY]): str,
                     vol.Required(CONF_USERNAME, default=defaults[CONF_USERNAME]): str,
                     vol.Required(CONF_PASSWORD, default=defaults[CONF_PASSWORD]): str,
                 }
@@ -76,16 +81,15 @@ class OhmeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             errors=self._errors,
         )
 
-    async def _test_credentials(self, apikey, username, password):
+    async def _test_credentials(self, api_key, username, password):
         """Return true if credentials is valid."""
         _LOGGER.debug("Test Ohme API credentials")
+        conn = OhmeAuth(api_key, username)
         try:
-            conn = OhmeAuth(apikey, username, password)
+            await conn.start_auth(password)
             charger = OhmeCharger(conn)
             await charger.refresh()
             return None, charger
-        except WrongCredentials:
-            error = "auth"
         except TimeoutException:
             _LOGGER.error("Timeout when communicating with Ohme API servers")
             error = "connection_timeout"

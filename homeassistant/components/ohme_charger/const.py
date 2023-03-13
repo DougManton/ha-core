@@ -8,7 +8,7 @@ SELECT = "select"
 NUMBER = "number"
 PLATFORMS = [SENSOR, SELECT, NUMBER]
 
-CONF_APIKEY = "apikey"
+CONF_APIKEY = "api_key"
 CONF_USERNAME = "username"
-CONF_PASSWORD = "Password"
+CONF_PASSWORD = "password"
 CONF_SCAN_INTERVAL = "scan_interval"
