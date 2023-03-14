@@ -20,12 +20,10 @@ class OhmeChargerEntity(CoordinatorEntity):
         self,
         coordinator: OhmeDataUpdateCoordinator,
         device: OhmeCharger,
-        config_entry,
     ) -> None:
         super().__init__(coordinator)
         self.device = device
         self.coordinator = coordinator
-        self.config_entry = config_entry
         self._attr_device_info: DeviceInfo = DeviceInfo(
             identifiers={(DOMAIN, self.device.session["chargeDevice"]["id"])},
             manufacturer="Ohme",
