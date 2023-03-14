@@ -17,9 +17,7 @@ class OhmeChargerEntity(CoordinatorEntity):
     """Coordinates the charging device"""
 
     def __init__(
-        self,
-        coordinator: OhmeDataUpdateCoordinator,
-        device: OhmeCharger,
+        self, coordinator: OhmeDataUpdateCoordinator, device: OhmeCharger, info: str
     ) -> None:
         super().__init__(coordinator)
         self.device = device

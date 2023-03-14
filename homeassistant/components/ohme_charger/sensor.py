@@ -7,7 +7,7 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, DATA_COORDINATOR
+from .const import DOMAIN, DATA_COORDINATOR, DATA_INFO
 from .entity import OhmeChargerEntity
 
 
@@ -18,8 +18,9 @@ async def async_setup_entry(
 ) -> None:
     """Set up the Ohme EV Charger sensor platform."""
     coordinator = hass.data[DOMAIN][config_entry.entry_id][DATA_COORDINATOR]
+    info = hass.data[DOMAIN][config_entry.entry_id][DATA_INFO]
     async_add_entities(
-        OhmeEVCharger(coordinator, unit_id) for unit_id in coordinator.data
+        OhmeEVCharger(coordinator, unit_id, info) for unit_id in coordinator.data
     )
 
 

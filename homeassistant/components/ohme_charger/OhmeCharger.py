@@ -159,3 +159,8 @@ class OhmeCharger:
             self.session["car"]["model"]["powerLimits"]["maxDemandW"] / 238,
             0,
         )
+
+    @property
+    def id(self) -> int:
+        """Return the charger ID"""
+        return self.session["chargeDevice"]["id"]

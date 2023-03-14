@@ -22,6 +22,7 @@ from .const import (
     DOMAIN,
     PLATFORMS,
     DATA_COORDINATOR,
+    DATA_INFO,
 )
 
 SCAN_INTERVAL = timedelta(seconds=60)
@@ -49,10 +50,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await conn.start_auth(str(password))
     charger = OhmeCharger(conn)
 
-    coordinator = OhmeDataUpdateCoordinator(hass, client=charger, entry=entry)
+    coordinator = OhmeDataUpdateCoordinator(hass, charger)
+    hass.data.setdefault(DOMAIN, {})
     await coordinator.async_config_entry_first_refresh()
 
-    hass.data[DOMAIN][entry.entry_id] = {DATA_COORDINATOR: coordinator}
+    hass.data[DOMAIN][entry.entry_id] = {
+        DATA_COORDINATOR: coordinator,
+        DATA_INFO: charger.id,
+    }
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
@@ -61,9 +66,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 class OhmeDataUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
 
-    def __init__(self, hass: HomeAssistant, client: OhmeCharger, entry) -> None:
+    def __init__(self, hass: HomeAssistant, client: OhmeCharger) -> None:
         """Initialize."""
-        self.client = client
+        self._client = client
 
         super().__init__(
             hass,
@@ -83,7 +88,7 @@ class OhmeDataUpdateCoordinator(DataUpdateCoordinator):
             utc_today.tzinfo,
         )
         try:
-            await self.client.refresh()
+            await self._client.refresh()
         except Exception as exception:
             raise UpdateFailed() from exception
 
