@@ -1,6 +1,8 @@
 """Constants for the Ohme Smart EV Charger integration."""
 
 DOMAIN = "ohme_charger"
+DATA_INFO = "info"
+DATA_COORDINATOR = "coordinator"
 
 # Platforms
 SENSOR = "sensor"

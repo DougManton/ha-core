@@ -34,7 +34,7 @@ class OhmeCharger:
 
     async def start_charge(self) -> bool:
         """Uses the global token to call the Ohme API to start charging."""
-        self.auth.refresh_auth()
+        await self.auth.refresh_auth()
         chargeSessionsUri = (
             "https://api.ohme.io/v1/chargeSessions/"
             + self.session["chargeDevice"]["id"]
@@ -51,7 +51,7 @@ class OhmeCharger:
 
     async def stop_charge(self) -> bool:
         """Uses the global token to call the Ohme API to stop charging."""
-        self.auth.refresh_auth()
+        await self.auth.refresh_auth()
         chargeSessionsUri = (
             "https://api.ohme.io/v1/chargeSessions/"
             + self.session["chargeDevice"]["id"]
@@ -66,7 +66,7 @@ class OhmeCharger:
 
     async def resume_charge(self) -> bool:
         """Uses the global token to call the Ohme API to resume charging."""
-        self.auth.refresh_auth()
+        await self.auth.refresh_auth()
         chargeSessionsUri = (
             "https://api.ohme.io/v1/chargeSessions/"
             + self.session["chargeDevice"]["id"]
@@ -85,7 +85,7 @@ class OhmeCharger:
         :param amperage: the requested amperage for charging
 
         """
-        self.auth.refresh_auth()
+        await self.auth.refresh_auth()
         # Find the highest supported amperage equal or lower to the one requested
         lower = []
         for i in self.cars:
@@ -132,7 +132,7 @@ class OhmeCharger:
 
     async def get_charge_sessions(self) -> str:
         """Uses the global token to call the Ohme API to get current session details.  Refreshes the token if it's expired."""
-        self.auth.refresh_auth()
+        await self.auth.refresh_auth()
         chargeSessionsUri = "https://api.ohme.io/v1/chargeSessions"
         headers = {"Authorization": "Firebase " + self.auth.token["idToken"]}
         async with httpx.AsyncClient(timeout=30) as httpclient:
@@ -142,3 +142,20 @@ class OhmeCharger:
     async def refresh(self) -> None:
         self.session = await self.get_charge_sessions()
         return
+
+    @property
+    def charge_status(self):
+        """Returns current state of the charger"""
+        if "mode" in self.session.keys():
+            return self.session["mode"]
+        else:
+            return None
+
+    @property
+    def current_amps(self) -> int:
+        """Returns the number of amps the charger is currently configured to provide
+        at MAX_CHARGE"""
+        return round(
+            self.session["car"]["model"]["powerLimits"]["maxDemandW"] / 238,
+            0,
+        )

@@ -7,6 +7,7 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.const import CONF_HOST, CONF_PORT, Platform
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 import homeassistant.util.dt as dt_util
@@ -20,11 +21,14 @@ from .const import (
     CONF_USERNAME,
     DOMAIN,
     PLATFORMS,
+    DATA_COORDINATOR,
 )
 
 SCAN_INTERVAL = timedelta(seconds=60)
 
 _LOGGER: logging.Logger = logging.getLogger(__package__)
+
+PLATFORMS = [Platform.SENSOR]
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -48,16 +52,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = OhmeDataUpdateCoordinator(hass, client=charger, entry=entry)
     await coordinator.async_config_entry_first_refresh()
 
-    hass.data[DOMAIN][entry.entry_id] = coordinator
+    hass.data[DOMAIN][entry.entry_id] = {DATA_COORDINATOR: coordinator}
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    for platform in PLATFORMS:
-        if entry.options.get(platform, True):
-            coordinator.platforms.append(platform)
-            hass.async_add_job(
-                hass.config_entries.async_forward_entry_setup(entry, platform)
-            )
-
-    entry.add_update_listener(async_reload_entry)
     return True
 
 
@@ -67,15 +64,13 @@ class OhmeDataUpdateCoordinator(DataUpdateCoordinator):
     def __init__(self, hass: HomeAssistant, client: OhmeCharger, entry) -> None:
         """Initialize."""
         self.client = client
-        self.platforms: list[str] = []
 
-        scan_interval = timedelta(
-            seconds=entry.options.get(
-                CONF_SCAN_INTERVAL,
-                entry.data.get(CONF_SCAN_INTERVAL, SCAN_INTERVAL.total_seconds()),
-            )
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=DOMAIN,
+            update_interval=SCAN_INTERVAL,
         )
-        super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=scan_interval)
 
     async def _async_update_data(self):
         """Update data via library."""
@@ -89,27 +84,16 @@ class OhmeDataUpdateCoordinator(DataUpdateCoordinator):
         )
         try:
             await self.client.refresh()
-            await self.client.refresh_history(utc_today, 24, "hour")
         except Exception as exception:
             raise UpdateFailed() from exception
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Handle removal of an entry."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]
-    unloaded = all(
-        await asyncio.gather(
-            *[
-                hass.config_entries.async_forward_entry_unload(entry, platform)
-                for platform in PLATFORMS
-                if platform in coordinator.platforms
-            ]
-        )
-    )
-    if unloaded:
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
-
-    return unloaded
+    return unload_ok
 
 
 async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:

@@ -32,7 +32,7 @@ class OhmeAuth:
                 auth = await httpclient.post(
                     url=createAuthUri + self.apikey, json=identity
                 )
-        finally:
+        except:
             raise WrongCredentials()
         if auth.status_code == 200:
             # Obtain the session token
@@ -41,7 +41,7 @@ class OhmeAuth:
                     key = await httpclient.post(
                         url=verifyPasswordUri + self.apikey, json=verify
                     )
-            finally:
+            except:
                 raise WrongCredentials()
             if key.status_code == 200:
                 idToken = key.json()["idToken"]
@@ -74,7 +74,7 @@ class OhmeAuth:
                 auth = await httpclient.post(
                     url=refreshTokenUri + self.token["apikey"], json=refresh
                 )
-        finally:
+        except:
             raise WrongCredentials()
         if auth.status_code == 200:
             idToken = auth.json()["id_token"]
