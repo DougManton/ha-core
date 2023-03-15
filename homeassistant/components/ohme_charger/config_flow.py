@@ -6,14 +6,16 @@ import traceback
 
 import voluptuous as vol
 
+from typing import Any
+
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.components.sensor import SCAN_INTERVAL
 
-from . import SCAN_INTERVAL
 from .OhmeAuth import OhmeAuth
 from .OhmeCharger import OhmeCharger
-from .const import CONF_APIKEY, CONF_PASSWORD, CONF_SCAN_INTERVAL, CONF_USERNAME, DOMAIN
+from .const import CONF_APIKEY, CONF_PASSWORD, CONF_USERNAME, CONF_SCAN_INTERVAL, DOMAIN
 from .exceptions import TimeoutException
 
 _LOGGER: logging.Logger = logging.getLogger(__package__)
@@ -36,6 +38,15 @@ class OhmeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         """Initialize."""
         self._errors: dict[str, str] = {}
+
+    @callback
+    def _async_get_entry(self, data: dict[str, Any]) -> FlowResult:
+        return self.async_create_entry(
+            title=data[CONF_APIKEY],
+            data={
+                CONF_APIKEY: data[CONF_APIKEY],
+            },
+        )
 
     async def async_step_user(self, user_input=None) -> FlowResult:
         """Handle a flow initialized by the user."""
@@ -101,40 +112,40 @@ class OhmeFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         return error, None
 
 
-class OhmeOptionsFlowHandler(config_entries.OptionsFlow):
-    """Config flow options handler for myenergi."""
+# class OhmeOptionsFlowHandler(config_entries.OptionsFlow):
+#     """Config flow options handler for myenergi."""
 
-    def __init__(self, config_entry) -> None:
-        """Initialize HACS options flow."""
-        self.config_entry = config_entry
-        self.options = dict(config_entry.options)
+#     def __init__(self, config_entry) -> None:
+#         """Initialize HACS options flow."""
+#         self.config_entry = config_entry
+#         self.options = dict(config_entry.options)
 
-    async def async_step_init(
-        self, user_input=None
-    ) -> FlowResult:  # pylint: disable=unused-argument
-        """Manage the options."""
-        return await self.async_step_user()
+#     async def async_step_init(
+#         self, user_input=None
+#     ) -> FlowResult:  # pylint: disable=unused-argument
+#         """Manage the options."""
+#         return await self.async_step_user()
 
-    async def async_step_user(self, user_input=None) -> FlowResult:
-        """Handle a flow initialized by the user."""
-        if user_input is not None:
-            self.options.update(user_input)
-            return await self._update_options()
+#     async def async_step_user(self, user_input=None) -> FlowResult:
+#         """Handle a flow initialized by the user."""
+#         if user_input is not None:
+#             self.options.update(user_input)
+#             return await self._update_options()
 
-        scan_interval = self.config_entry.options.get(
-            CONF_SCAN_INTERVAL, SCAN_INTERVAL.total_seconds()
-        )
-        return self.async_show_form(
-            step_id="user",
-            data_schema=vol.Schema(
-                {
-                    vol.Optional(CONF_SCAN_INTERVAL, default=scan_interval): int,
-                }
-            ),
-        )
+#         scan_interval = self.config_entry.options.get(
+#             CONF_SCAN_INTERVAL, SCAN_INTERVAL.total_seconds()
+#         )
+#         return self.async_show_form(
+#             step_id="user",
+#             data_schema=vol.Schema(
+#                 {
+#                     vol.Optional(CONF_SCAN_INTERVAL, default=scan_interval): int,
+#                 }
+#             ),
+#         )
 
-    async def _update_options(self):
-        """Update config entry options."""
-        return self.async_create_entry(
-            title=self.config_entry.data.get("API " + CONF_USERNAME), data=self.options
-        )
+#     async def _update_options(self):
+#         """Update config entry options."""
+#         return self.async_create_entry(
+#             title=self.config_entry.data.get("API " + CONF_USERNAME), data=self.options
+#         )

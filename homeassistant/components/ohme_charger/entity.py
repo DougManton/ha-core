@@ -6,7 +6,6 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import OhmeDataUpdateCoordinator
-from .OhmeCharger import OhmeCharger
 
 from .const import DOMAIN
 
@@ -17,19 +16,13 @@ class OhmeChargerEntity(CoordinatorEntity):
     """Coordinates the charging device"""
 
     def __init__(
-        self, coordinator: OhmeDataUpdateCoordinator, device: OhmeCharger, info: str
+        self, coordinator: OhmeDataUpdateCoordinator, charger_id: str, info: str
     ) -> None:
         super().__init__(coordinator)
-        self.device = device
-        self.coordinator = coordinator
+        self._device: str = charger_id
         self._attr_device_info: DeviceInfo = DeviceInfo(
-            identifiers={(DOMAIN, self.device.session["chargeDevice"]["id"])},
+            identifiers={(DOMAIN, charger_id)},
             manufacturer="Ohme",
-            model=self.device.session["chargeDevice"][
-                "modelTypeDisplayName"
-            ].capitalize(),
-            name=self.device.session["chargeDevice"]["modelTypeDisplayName"],
-            sw_version=self.device.session["chargeDevice"]["firmwareVersionLabel"],
         )
 
     async def start_charge(self) -> None:

@@ -6,6 +6,7 @@ from datetime import timedelta
 import logging
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.components.sensor import SCAN_INTERVAL
 from homeassistant.core import HomeAssistant
 from homeassistant.const import CONF_HOST, CONF_PORT, Platform
 from homeassistant.helpers.typing import ConfigType
@@ -17,15 +18,12 @@ from .OhmeCharger import OhmeCharger
 from .const import (
     CONF_APIKEY,
     CONF_PASSWORD,
-    CONF_SCAN_INTERVAL,
     CONF_USERNAME,
     DOMAIN,
     PLATFORMS,
     DATA_COORDINATOR,
     DATA_INFO,
 )
-
-SCAN_INTERVAL = timedelta(seconds=60)
 
 _LOGGER: logging.Logger = logging.getLogger(__package__)
 
@@ -51,7 +49,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     charger = OhmeCharger(conn)
 
     coordinator = OhmeDataUpdateCoordinator(hass, charger)
-    hass.data.setdefault(DOMAIN, {})
     await coordinator.async_config_entry_first_refresh()
 
     hass.data[DOMAIN][entry.entry_id] = {
@@ -88,7 +85,7 @@ class OhmeDataUpdateCoordinator(DataUpdateCoordinator):
             utc_today.tzinfo,
         )
         try:
-            await self._client.refresh()
+            return await self._client.refresh()
         except Exception as exception:
             raise UpdateFailed() from exception
 
