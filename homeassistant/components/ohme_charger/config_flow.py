@@ -64,6 +64,7 @@ class OhmeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
             if charger_id is not None:
                 user_input["id"] = charger_id
+                await self.async_set_unique_id(charger_id)
                 return self._async_get_entry(user_input)
         return self.async_show_form(
             step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
