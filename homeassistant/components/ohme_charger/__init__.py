@@ -8,6 +8,7 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.components.sensor import SCAN_INTERVAL
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.const import CONF_HOST, CONF_PORT, Platform
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -48,12 +49,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await conn.start_auth(str(password))
     charger = OhmeCharger(conn)
 
+    try:
+        await charger.refresh()
+        if charger.id == "":
+            raise ConfigEntryNotReady
+    except OSError as error:
+        raise ConfigEntryNotReady() from error
+
     coordinator = OhmeDataUpdateCoordinator(hass, charger)
     await coordinator.async_config_entry_first_refresh()
 
     hass.data[DOMAIN][entry.entry_id] = {
-        DATA_COORDINATOR: coordinator,
         DATA_INFO: charger.id,
+        DATA_COORDINATOR: coordinator,
     }
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
@@ -85,7 +93,8 @@ class OhmeDataUpdateCoordinator(DataUpdateCoordinator):
             utc_today.tzinfo,
         )
         try:
-            return await self._client.refresh()
+            await self._client.refresh()
+            return {"charger_id": self._client.id}
         except Exception as exception:
             raise UpdateFailed() from exception
 

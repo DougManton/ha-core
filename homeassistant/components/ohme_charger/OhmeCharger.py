@@ -19,6 +19,7 @@ class OhmeCharger:
         }
         self.chargeStart = datetime.now()
         self.chargeEnd = datetime.now()
+        self.id = ""
 
     def __str__(self) -> str:
         return self.session["chargeDevice"]["id"]
@@ -141,6 +142,7 @@ class OhmeCharger:
 
     async def refresh(self) -> None:
         self.session = await self.get_charge_sessions()
+        self.id = self.session["chargeDevice"]["id"]
         return
 
     @property
@@ -159,8 +161,3 @@ class OhmeCharger:
             self.session["car"]["model"]["powerLimits"]["maxDemandW"] / 238,
             0,
         )
-
-    @property
-    def id(self) -> int:
-        """Return the charger ID"""
-        return self.session["chargeDevice"]["id"]
