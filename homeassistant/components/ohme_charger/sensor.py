@@ -20,11 +20,12 @@ async def async_setup_entry(
     info = hass.data[DOMAIN][config_entry.entry_id][DATA_INFO]
     coordinator = hass.data[DOMAIN][config_entry.entry_id][DATA_COORDINATOR]
     async_add_entities(
-        OhmeEVCharger(coordinator, charger_id, info) for charger_id in coordinator.data
+        OhmeEVChargeStatus(coordinator, charger_id, info)
+        for charger_id in coordinator.data
     )
 
 
-class OhmeEVCharger(OhmeChargerEntity, SensorEntity):
+class OhmeEVChargeStatus(OhmeChargerEntity, SensorEntity):
     """Ohme EV Smart Charger Data"""
 
     _attr_has_entity_name = True
@@ -38,4 +39,4 @@ class OhmeEVCharger(OhmeChargerEntity, SensorEntity):
     @property
     def native_value(self) -> str:
         """Return the charge status string."""
-        return self.charge_status or "UNKNOWN"
+        return self._device.charge_status or "UNKNOWN"

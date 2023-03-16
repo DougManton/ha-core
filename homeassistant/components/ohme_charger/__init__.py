@@ -50,8 +50,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     charger = OhmeCharger(conn)
 
     try:
-        await charger.refresh()
-        if charger.id == "":
+        info = await charger.refresh()
+        if info == "":
             raise ConfigEntryNotReady
     except OSError as error:
         raise ConfigEntryNotReady() from error
@@ -60,7 +60,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await coordinator.async_config_entry_first_refresh()
 
     hass.data[DOMAIN][entry.entry_id] = {
-        DATA_INFO: charger.id,
+        DATA_INFO: info,
         DATA_COORDINATOR: coordinator,
     }
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -93,8 +93,7 @@ class OhmeDataUpdateCoordinator(DataUpdateCoordinator):
             utc_today.tzinfo,
         )
         try:
-            await self._client.refresh()
-            return {"charger_id": self._client.id}
+            return await self._client.setup()
         except Exception as exception:
             raise UpdateFailed() from exception
 

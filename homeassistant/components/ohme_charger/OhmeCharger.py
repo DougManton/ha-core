@@ -20,6 +20,7 @@ class OhmeCharger:
         self.chargeStart = datetime.now()
         self.chargeEnd = datetime.now()
         self.id = ""
+        self.charge_status = ""
 
     def __str__(self) -> str:
         return self.session["chargeDevice"]["id"]
@@ -140,18 +141,17 @@ class OhmeCharger:
             sessions = await httpclient.get(url=chargeSessionsUri, headers=headers)
         return sessions.json()[0]
 
-    async def refresh(self) -> None:
+    async def refresh(self) -> dict:
         self.session = await self.get_charge_sessions()
         self.id = self.session["chargeDevice"]["id"]
-        return
+        self.charge_status = self.session["mode"]
+        return {"charger_id": self.id, "charge_status": self.charge_status}
 
-    @property
-    def charge_status(self):
-        """Returns current state of the charger"""
-        if "mode" in self.session.keys():
-            return self.session["mode"]
-        else:
-            return None
+    async def setup(self):
+        self.session = await self.get_charge_sessions()
+        self.id = self.session["chargeDevice"]["id"]
+        self.charge_status = self.session["mode"]
+        return {self.id: self}
 
     @property
     def current_amps(self) -> int:
