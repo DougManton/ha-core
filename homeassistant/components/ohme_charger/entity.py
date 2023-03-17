@@ -4,6 +4,7 @@ import logging
 from homeassistant.core import callback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.core import HomeAssistant
 
 from . import OhmeDataUpdateCoordinator
 
@@ -18,15 +19,15 @@ class OhmeChargerEntity(CoordinatorEntity[OhmeDataUpdateCoordinator]):
 
     def __init__(
         self,
+        hass: HomeAssistant,
         coordinator: OhmeDataUpdateCoordinator,
-        charger_id: str,
-        info: dict[str, str],
+        charger: OhmeCharger,
     ) -> None:
         super().__init__(coordinator)
-        self._device_id: str = charger_id
-        self._device: OhmeCharger = coordinator.data[self._device_id]
+        self._device_id: str = charger.id
+        self._device: OhmeCharger = charger
         self._attr_device_info: DeviceInfo = DeviceInfo(
-            identifiers={(DOMAIN, charger_id)}, manufacturer="Ohme", name=charger_id
+            identifiers={(DOMAIN, charger.id)}, manufacturer="Ohme", name=charger.id
         )
 
     # async def start_charge(self) -> None:

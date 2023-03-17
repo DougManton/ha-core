@@ -28,7 +28,7 @@ from .const import (
 
 _LOGGER: logging.Logger = logging.getLogger(__package__)
 
-PLATFORMS = [Platform.SENSOR]
+PLATFORMS = [Platform.BINARY_SENSOR]
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -62,6 +62,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = {
         DATA_INFO: info,
         DATA_COORDINATOR: coordinator,
+        "chargers": [charger],
     }
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 

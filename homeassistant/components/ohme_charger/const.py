@@ -6,9 +6,10 @@ DATA_COORDINATOR = "coordinator"
 
 # Platforms
 SENSOR = "sensor"
+BINARY_SENSOR = "binary_sensor"
 SELECT = "select"
 NUMBER = "number"
-PLATFORMS = [SENSOR, SELECT, NUMBER]
+PLATFORMS = [BINARY_SENSOR, SELECT, NUMBER]
 
 CONF_APIKEY = "api_key"
 CONF_USERNAME = "username"
