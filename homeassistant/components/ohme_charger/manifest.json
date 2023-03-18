@@ -1,9 +1,13 @@
 {
   "domain": "ohme_charger",
   "name": "Ohme Smart EV Charger",
-  "codeowners": ["@DougManton"],
+  "version": "1.0.0",
+  "codeowners": [
+    "@DougManton"
+  ],
   "config_flow": true,
   "dependencies": [],
+  "integration_type": "device",
   "documentation": "https://www.home-assistant.io/integrations/ohme_charger",
   "homekit": {},
   "iot_class": "cloud_polling",
