@@ -21,6 +21,7 @@ class OhmeCharger:
         self.chargeEnd = datetime.now()
         self.id = ""
         self.charge_status = ""
+        self.model = ""
 
     def __str__(self) -> str:
         return self.session["chargeDevice"]["id"]
@@ -106,13 +107,12 @@ class OhmeCharger:
             return False
         return False
 
-    async def get_charge_times(self) -> list:
+    def get_charge_times(self) -> list:
         """The API doesn't return the scheduled time for the next charge but it does return
         the points to render a graph.  The final point before the first increase corresponds
         to when the charge starts, the final point to show an increase corresponds to when
         the charge ends.
         """
-        self.session = await self.get_charge_sessions()
         times = []
         start = 0
         started = 0
@@ -143,7 +143,6 @@ class OhmeCharger:
 
     async def refresh(self) -> dict:
         self.session = await self.get_charge_sessions()
-        self.id = self.session["chargeDevice"]["id"]
         self.charge_status = self.session["mode"]
         return {"charger_id": self.id, "charge_status": self.charge_status}
 
@@ -151,13 +150,35 @@ class OhmeCharger:
         self.session = await self.get_charge_sessions()
         self.id = self.session["chargeDevice"]["id"]
         self.charge_status = self.session["mode"]
+        self.model = self.session["chargeDevice"]["modelTypeDisplayName"]
         return {self.id: self}
 
     @property
-    def current_amps(self) -> int:
+    def max_amps(self) -> int:
         """Returns the number of amps the charger is currently configured to provide
         at MAX_CHARGE"""
         return round(
             self.session["car"]["model"]["powerLimits"]["maxDemandW"] / 238,
             0,
         )
+
+    @property
+    def current_amps(self) -> int:
+        """Returns the number of amps the charger is currently supplying"""
+        if self.session["power"] is not None:
+            return self.session["power"]["amp"]
+        return 0
+
+    @property
+    def current_power(self) -> int:
+        """Returns the number of watts the charger is currently supplying"""
+        if self.session["power"] is not None:
+            return self.session["power"]["watt"]
+        return 0
+
+    @property
+    def current_voltage(self) -> int:
+        """Returns the number of volts the charger is currently supplying"""
+        if self.session["power"] is not None:
+            return self.session["power"]["volt"]
+        return 0

@@ -9,10 +9,12 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, DATA_COORDINATOR, DATA_INFO
+from .const import DOMAIN, DATA_COORDINATOR
 from .entity import OhmeChargerEntity
 from .OhmeCharger import OhmeCharger
 from . import OhmeDataUpdateCoordinator
+
+import time
 
 
 async def async_setup_entry(
@@ -24,6 +26,10 @@ async def async_setup_entry(
     coordinator = hass.data[DOMAIN][config_entry.entry_id][DATA_COORDINATOR]
     async_add_entities(
         OhmeEVCharging(hass, coordinator, charger)
+        for charger in hass.data[DOMAIN][config_entry.entry_id]["chargers"]
+    )
+    async_add_entities(
+        OhmeEVScheduledCharging(hass, coordinator, charger)
         for charger in hass.data[DOMAIN][config_entry.entry_id]["chargers"]
     )
 
@@ -46,4 +52,37 @@ class OhmeEVCharging(OhmeChargerEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool:
         """Return the charge status."""
-        return self._device.charge_status == "SMART_CHARGE"
+        return self._device.session["mode"] == "MAX_CHARGE"
+
+
+class OhmeEVScheduledCharging(OhmeChargerEntity, BinarySensorEntity):
+    """Representation of a Ohme car scheduled charging binary sensor."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        coordinator: OhmeDataUpdateCoordinator,
+        charger: OhmeCharger,
+    ) -> None:
+        """Initialize scheduled charging entity."""
+        super().__init__(hass, coordinator, charger)
+        self.type = "scheduled charging"
+        self._attr_icon = "mdi:calendar-plus"
+        self._attr_device_class = None
+
+    @property
+    def is_on(self) -> bool:
+        """Return True if scheduled charging enabled."""
+        if self._device.get_charge_times() != []:
+            return True
+        return False
+
+    @property
+    def extra_state_attributes(self) -> dict[str, any]:
+        """Return device state attributes."""
+        # pylint: disable=protected-access
+        times = self._device.get_charge_times()
+        return {
+            "Next charge start": time.gmtime(times[0]),
+            "Next charge end": time.gmtime(times[1]),
+        }
