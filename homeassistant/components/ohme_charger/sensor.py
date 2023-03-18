@@ -18,6 +18,9 @@ from .entity import OhmeChargerEntity
 from .OhmeCharger import OhmeCharger
 from . import OhmeDataUpdateCoordinator
 
+from datetime import datetime
+import pytz
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -28,6 +31,18 @@ async def async_setup_entry(
     coordinator = hass.data[DOMAIN][config_entry.entry_id][DATA_COORDINATOR]
     async_add_entities(
         OhmeEVCurrentPower(hass, coordinator, charger)
+        for charger in hass.data[DOMAIN][config_entry.entry_id]["chargers"]
+    )
+    async_add_entities(
+        OhmeEVScheduledChargingStart(hass, coordinator, charger)
+        for charger in hass.data[DOMAIN][config_entry.entry_id]["chargers"]
+    )
+    async_add_entities(
+        OhmeEVScheduledChargingFinalEnd(hass, coordinator, charger)
+        for charger in hass.data[DOMAIN][config_entry.entry_id]["chargers"]
+    )
+    async_add_entities(
+        OhmeEVScheduledChargingEnd(hass, coordinator, charger)
         for charger in hass.data[DOMAIN][config_entry.entry_id]["chargers"]
     )
 
@@ -65,3 +80,72 @@ class OhmeEVCurrentPower(OhmeChargerEntity, SensorEntity):
     def native_value(self) -> float:
         """Return the charge power in kW."""
         return self._device.current_power / 1000
+
+
+class OhmeEVScheduledChargingStart(OhmeChargerEntity, SensorEntity):
+    """Representation of a Ohme car scheduled charging start."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        coordinator: OhmeDataUpdateCoordinator,
+        charger: OhmeCharger,
+    ) -> None:
+        """Initialize scheduled charging entity."""
+        super().__init__(hass, coordinator, charger)
+        self.type = "charging start"
+        self._attr_icon = "mdi:calendar-plus"
+        self._attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    @property
+    def native_value(self) -> float:
+        """Return the charge power in kW."""
+        return datetime.fromtimestamp(
+            self._device.get_charge_times()[0], pytz.timezone("UTC")
+        )
+
+
+class OhmeEVScheduledChargingEnd(OhmeChargerEntity, SensorEntity):
+    """Representation of a Ohme car scheduled charging end."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        coordinator: OhmeDataUpdateCoordinator,
+        charger: OhmeCharger,
+    ) -> None:
+        """Initialize scheduled charging entity."""
+        super().__init__(hass, coordinator, charger)
+        self.type = "charging end"
+        self._attr_icon = "mdi:calendar-plus"
+        self._attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    @property
+    def native_value(self) -> float:
+        """Return the charge power in kW."""
+        return datetime.fromtimestamp(
+            self._device.get_charge_times()[1], pytz.timezone("UTC")
+        )
+
+
+class OhmeEVScheduledChargingFinalEnd(OhmeChargerEntity, SensorEntity):
+    """Representation of a Ohme car scheduled charging end."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        coordinator: OhmeDataUpdateCoordinator,
+        charger: OhmeCharger,
+    ) -> None:
+        """Initialize scheduled charging entity."""
+        super().__init__(hass, coordinator, charger)
+        self.type = "charging final end"
+        self._attr_icon = "mdi:calendar-plus"
+        self._attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    @property
+    def native_value(self) -> float:
+        """Return the charge power in kW."""
+        return datetime.fromtimestamp(
+            self._device.get_charge_times()[-1], pytz.timezone("UTC")
+        )

@@ -25,34 +25,9 @@ async def async_setup_entry(
     """Set up the Ohme EV Charger sensor platform."""
     coordinator = hass.data[DOMAIN][config_entry.entry_id][DATA_COORDINATOR]
     async_add_entities(
-        OhmeEVCharging(hass, coordinator, charger)
-        for charger in hass.data[DOMAIN][config_entry.entry_id]["chargers"]
-    )
-    async_add_entities(
         OhmeEVScheduledCharging(hass, coordinator, charger)
         for charger in hass.data[DOMAIN][config_entry.entry_id]["chargers"]
     )
-
-
-class OhmeEVCharging(OhmeChargerEntity, BinarySensorEntity):
-    """Ohme EV Smart Charger Data"""
-
-    def __init__(
-        self,
-        hass: HomeAssistant,
-        coordinator: OhmeDataUpdateCoordinator,
-        charger: OhmeCharger,
-    ) -> None:
-        """Initialize charging entity."""
-        super().__init__(hass, coordinator, charger)
-        self.type = "charging"
-        self._attr_icon = "mdi:ev-station"
-        self._attr_device_class = BinarySensorDeviceClass.BATTERY_CHARGING
-
-    @property
-    def is_on(self) -> bool:
-        """Return the charge status."""
-        return self._device.session["mode"] == "MAX_CHARGE"
 
 
 class OhmeEVScheduledCharging(OhmeChargerEntity, BinarySensorEntity):
