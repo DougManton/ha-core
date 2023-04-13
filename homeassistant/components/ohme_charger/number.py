@@ -15,6 +15,8 @@ from .entity import OhmeChargerEntity
 from .OhmeCharger import OhmeCharger
 from . import OhmeDataUpdateCoordinator
 
+import math
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -52,9 +54,9 @@ class OhmeEVMaxAmps(OhmeChargerEntity, NumberEntity):
     @property
     def native_value(self) -> float:
         """Return the charge status."""
-        return self._device.max_amps
+        return math.floor(self._device.current_amps)
 
     async def async_set_native_value(self, value: float) -> None:
         """Update charging amps."""
-        await self._device.switch_amps(round(value, 0))
+        await self._device.switch_amps(math.floor(value))
         await self.async_update_ha_state()
