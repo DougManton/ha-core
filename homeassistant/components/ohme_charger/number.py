@@ -52,9 +52,19 @@ class OhmeEVMaxAmps(OhmeChargerEntity, NumberEntity):
         return ELECTRIC_CURRENT_AMPERE
 
     @property
+    def native_min_value(self) -> int:
+        """Return min amperage."""
+        return 0
+
+    @property
+    def native_max_value(self) -> int:
+        """Return max amperage."""
+        return 48
+
+    @property
     def native_value(self) -> float:
         """Return the charge status."""
-        return math.floor(self._device.current_amps)
+        return math.floor(self._device.max_amps)
 
     async def async_set_native_value(self, value: float) -> None:
         """Update charging amps."""

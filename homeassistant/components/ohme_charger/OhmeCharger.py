@@ -15,7 +15,13 @@ class OhmeCharger:
         self.session = {
             "sessionId": "null",
             "mode": "DISCONNECTED",
-            "chargeDevice": {"id": ""},
+        }
+        self.account = {
+            "user": {
+                "id": "",
+            },
+            "cars": [{"id": ""}],
+            "chargeDevices": [{"id": "null"}],
         }
         self.chargeStart = datetime.now()
         self.chargeEnd = datetime.now()
@@ -24,15 +30,16 @@ class OhmeCharger:
         self.model = ""
 
     def __str__(self) -> str:
-        return self.session["chargeDevice"]["id"]
+        return self.account["chargeDevices"][0]["id"]
 
     # Defines the available solar cars (limited) and the Kona (max rate) which can be used as inputs to force specific charge rates
     cars = {
         6: '{"manufacturerId":"no_car_api_JVbisjT6fisJ04MSqZo0","model":{"modelDetailName":"Solar_6A_1.4kW","make":"SOLAR","id":"SOLAR_DEMO 6A","energyCapacityWh":50000,"averageWhPerKm":191,"imageUrl":"","powerLimits":{"maxDemandW":1400},"specifiedRangeKm":262,"modelName":"6A_1.4kW (2022)","providesBatterySoc":false,"modelYear":2022},"vehicleStatus":{}}',
         10: '{"manufacturerId":"no_car_api_0T2Qh9THS24jRrxFUEIz","model":{"modelDetailName":"Solar_10A_2kW","make":"SOLAR","id":"SOLAR_DEMO","energyCapacityWh":50000,"averageWhPerKm":191,"imageUrl":"","powerLimits":{"maxDemandW":2400},"specifiedRangeKm":262,"modelName":"10A_2kW (2022)","providesBatterySoc":false,"modelYear":2022},"vehicleStatus":{}}',
-        13: '{"manufacturerId":"no_car_api_OP68mL2p6NKjjixjSzfy","model":{"modelDetailName":"Solar_13A_3kW","make":"SOLAR","id":"SOLAR_DEMO 13A","energyCapacityWh":50000,"averageWhPerKm":190,"imageUrl":"","powerLimits":{"maxDemandW":3600},"specifiedRangeKm":262,"modelName":"13A_3kW (2023)","providesBatterySoc":false,"modelYear":2023},"vehicleStatus":{}}',
+        15: '{"manufacturerId":"no_car_api_OP68mL2p6NKjjixjSzfy","model":{"modelDetailName":"Solar_13A_3kW","make":"SOLAR","id":"SOLAR_DEMO 13A","energyCapacityWh":50000,"averageWhPerKm":190,"imageUrl":"","powerLimits":{"maxDemandW":3600},"specifiedRangeKm":262,"modelName":"13A_3kW (2023)","providesBatterySoc":false,"modelYear":2023},"vehicleStatus":{}}',
         21: '{"manufacturerId":"no_car_api_fzYQpg9rCVrLvKkcq3DT","model":{"modelDetailName":"Solar_5kW","make":"SOLAR","id":"SOLAR_DEMO 21A/5kW","energyCapacityWh":60000,"averageWhPerKm":191,"imageUrl":"","powerLimits":{"maxDemandW":5000},"specifiedRangeKm":262,"modelName":"21A_5kW (2023)","providesBatterySoc":false,"modelYear":2023},"vehicleStatus":{}}',
         32: '{"manufacturerId":"no_car_api_KBUqSYtcGG0pOHupY1I1","model":{"modelDetailName":"Electric 64 kWh","make":"HYUNDAI","id":"HYUNDAI 2018 Kona Electric 64 kWh","energyCapacityWh":67500,"averageWhPerKm":165,"imageUrl":"https:\\/\\/s3.eu-west-2.amazonaws.com\\/ohme-images-public\\/cars\\/evdb\\/BEV\\/1126\\/enhanced.png","powerLimits":{"maxDemandW":7680},"specifiedRangeKm":449,"modelName":"Kona (2018)","providesBatterySoc":false,"modelYear":2018},"vehicleStatus":{}}',
+        48: '{"id":"8e49d106-0b9b-4687-af84-7b37c11ac7db","manufacturerId":"no_car_api_0jjeoFzwvPXzVOZQ1ILL","manufacturerUserId":null,"vin":null,"name":null,"model":{"id":"TESLA 2022 Model Y Long Range Dual Motor","make":"TESLA","modelName":"Model Y (2022)","modelYear":2022,"modelDetailName":"Long Range Dual Motor","imageUrl":"https://s3.eu-west-2.amazonaws.com/ohme-images-public/cars/evdb/BEV/1182/enhanced.png","powerLimits":{"maxDemandW":11520,"minDemandW":null,"maxSupplyW":null,"minSupplyW":null},"averageWhPerKm":168,"energyCapacityWh":75000,"specifiedRangeKm":507,"providesBatterySoc":false,"rangeKm":507.0},"ownerUserId":"8DVnXXVS3ZajKT5hXoeguo3IWnt1","batterySoc":null,"licensePlateId":null,"startChargeSupported":null,"vehicleStatus":{"odometerReadingKm":null,"maxSoc":null,"rangeDisplaySelection":null,"soc":null,"climate":null,"chargingStatus":null,"availableChargingPowerW":null,"chargingSpeedKmh":null,"timestamp":null},"userNotes":null,"userDefined":false}',
     }
 
     async def start_charge(self) -> bool:
@@ -141,24 +148,39 @@ class OhmeCharger:
             sessions = await httpclient.get(url=chargeSessionsUri, headers=headers)
         return sessions.json()[0]
 
+    async def get_account_info(self) -> str:
+        """Uses the global token to call the Ohme API to get current account details.  Refreshes the token if it's expired."""
+        await self.auth.refresh_auth()
+        accountInfoUri = (
+            "https://api.ohme.io/v1/users/me/account?timeZone=Europe%252FLondon"
+        )
+        headers = {"Authorization": "Firebase " + self.auth.token["idToken"]}
+        async with httpx.AsyncClient(timeout=30) as httpclient:
+            account = await httpclient.get(url=accountInfoUri, headers=headers)
+        return account.json()
+
     async def refresh(self) -> dict:
         self.session = await self.get_charge_sessions()
         self.charge_status = self.session["mode"]
+        self.account = await self.get_account_info()
+        if self.session["mode"] == "DISCONNECTED":
+            self.disconnect = True
+        else:
+            self.disconnect = False
         return {"charger_id": self.id, "charge_status": self.charge_status}
 
     async def setup(self):
         self.session = await self.get_charge_sessions()
-        self.id = self.session["chargeDevice"]["id"]
+        self.id = self.account["chargeDevices"][0]["id"]
         self.charge_status = self.session["mode"]
-        self.model = self.session["chargeDevice"]["modelTypeDisplayName"]
+        self.model = self.account["chargeDevices"][0]["modelTypeDisplayName"]
         return {self.id: self}
 
     @property
     def max_amps(self) -> int:
-        """Returns the number of amps the charger is currently configured to provide
-        at MAX_CHARGE"""
+        """Returns the number of amps the charger is configured to supply"""
         return round(
-            self.session["car"]["model"]["powerLimits"]["maxDemandW"] / 238,
+            self.account["cars"][0]["model"]["powerLimits"]["maxDemandW"] / 240,
             0,
         )
 
