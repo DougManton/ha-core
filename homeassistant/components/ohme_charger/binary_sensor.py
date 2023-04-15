@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from homeassistant.components.binary_sensor import (
-    BinarySensorDeviceClass,
     BinarySensorEntity,
 )
 from homeassistant.config_entries import ConfigEntry
@@ -48,7 +47,7 @@ class OhmeEVScheduledCharging(OhmeChargerEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool:
         """Return True if scheduled charging enabled."""
-        if self._device.get_charge_times() != []:
+        if self._device.get_charge_times() != [] and not self._device.disconnect:
             return True
         return False
 

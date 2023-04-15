@@ -109,6 +109,7 @@ class OhmeCharger:
                 car = await httpclient.post(
                     url=carSwitchUri, headers=headers, json=json.loads(self.cars[amps])
                 )
+            await self.refresh()
             if car.status_code == 200:
                 return True
             return False
